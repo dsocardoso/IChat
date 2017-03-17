@@ -5,7 +5,10 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ListView;
+
+import com.squareup.picasso.Picasso;
 
 import br.com.caelum.ichat.app.ChatApplication;
 import br.com.caelum.ichat.adapter.MensagemAdapter;
@@ -34,11 +37,15 @@ public class MainActivity extends AppCompatActivity {
     EditText editText;
     @BindView(R.id.mensagem)
     ListView listaDeMensagens;
+    @BindView(R.id.iv_avatar_usuario)
+    ImageView avatar;
 
     private List<Mensagem> mensagens;
     private ChatComponent component;
     @Inject
     ChatService chatService;
+    @Inject
+    Picasso picasso;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
         mensagens = new ArrayList<>();
         MensagemAdapter adapter = new MensagemAdapter(idDoCliente, mensagens, this);
         listaDeMensagens.setAdapter(adapter);
-
+        picasso.with(this).load("http://api.adorable.io/avatars/285/" + idDoCliente + ".png").into(avatar);
         ouvirMensagem();
     }
 
