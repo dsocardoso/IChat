@@ -1,13 +1,7 @@
 package br.com.caelum.ichat.activity;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -15,11 +9,16 @@ import android.widget.ListView;
 
 import com.squareup.picasso.Picasso;
 
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+
 import br.com.caelum.ichat.app.ChatApplication;
 import br.com.caelum.ichat.adapter.MensagemAdapter;
 import br.com.caelum.ichat.callback.EnviarMensagemCallback;
+import br.com.caelum.ichat.callback.FailureEvent;
 import br.com.caelum.ichat.callback.OuvirMensagemCallback;
 import br.com.caelum.ichat.component.ChatComponent;
+import br.com.caelum.ichat.event.MensagemEvent;
 import br.com.caelum.ichat.modelo.Mensagem;
 import br.com.caelum.ichat.service.ChatService;
 import butterknife.BindView;
@@ -51,6 +50,8 @@ public class MainActivity extends AppCompatActivity {
     ChatService chatService;
     @Inject
     Picasso picasso;
+    @Inject
+    EventBus eventBus;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,19 +69,9 @@ public class MainActivity extends AppCompatActivity {
         listaDeMensagens.setAdapter(adapter);
         picasso.with(this).load("http://api.adorable.io/avatars/285/" + idDoCliente + ".png").into(avatar);
 
-        LocalBroadcastManager localBroadcastManager = LocalBroadcastManager.getInstance(this);
-        localBroadcastManager.registerReceiver(receiver, new IntentFilter("nova_mensagem"));
-        ouvirMensagem();
-
+        ouvirMensagem(new MensagemEvent());
+        eventBus.register(this);
     }
-    //callback for receive the event.
-    private BroadcastReceiver receiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Mensagem mensagem = (Mensagem) intent.getSerializableExtra("mensagem");
-            colocaNaLista(mensagem);
-        }
-    };
 
     @OnClick(R.id.btn_enviar)
     public void enviarMensagem(){
@@ -88,22 +79,26 @@ public class MainActivity extends AppCompatActivity {
                 .enqueue(new EnviarMensagemCallback());
     }
 
-    public void ouvirMensagem() {
-        Call<Mensagem> call = chatService.ouvirMensagens();
-        call.enqueue(new OuvirMensagemCallback(this));
-    }
-
-    public void colocaNaLista(Mensagem mensagem) {
-        mensagens.add(mensagem);
+    @Subscribe
+    public void colocaNaLista(MensagemEvent mensagemEvent) {
+        mensagens.add(mensagemEvent.mensagem);
         MensagemAdapter adapter = new MensagemAdapter(idDoCliente, mensagens, this);
         listaDeMensagens.setAdapter(adapter);
+    }
+    @Subscribe
+    public void ouvirMensagem(MensagemEvent mensagemEvent) {
+        Call<Mensagem> call = chatService.ouvirMensagens();
+        call.enqueue(new OuvirMensagemCallback(this,eventBus));
+    }
+    @Subscribe
+    public void lidarCom(FailureEvent event){
+        ouvirMensagem(null);
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        LocalBroadcastManager localBroadcastManager = LocalBroadcastManager.getInstance(this);
-        localBroadcastManager.unregisterReceiver(receiver);
+        eventBus.unregister(this);
 
     }
 }
