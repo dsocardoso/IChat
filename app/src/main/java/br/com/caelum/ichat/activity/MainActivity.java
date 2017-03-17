@@ -14,6 +14,9 @@ import br.com.caelum.ichat.callback.OuvirMensagemCallback;
 import br.com.caelum.ichat.component.ChatComponent;
 import br.com.caelum.ichat.modelo.Mensagem;
 import br.com.caelum.ichat.service.ChatService;
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
 import caelum.com.br.ichat_alura.R;
 import retrofit2.Call;
 
@@ -25,10 +28,13 @@ import javax.inject.Inject;
 public class MainActivity extends AppCompatActivity {
 
     private int idDoCliente;
-    private Button button;
-    private EditText editText;
+    @BindView(R.id.btn_enviar)
+    Button button;
+    @BindView(R.id.et_texto)
+    EditText editText;
+    @BindView(R.id.mensagem)
+    ListView listaDeMensagens;
 
-    private ListView listaDeMensagens;
     private List<Mensagem> mensagens;
     private ChatComponent component;
     @Inject
@@ -38,29 +44,24 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        ButterKnife.bind(this);
         // chamada inj dependência
         ChatApplication app = (ChatApplication) getApplication();
         component = app.getComponent();
         component.inject(this);
 
         // inicializando lista
-        listaDeMensagens = (ListView) findViewById(R.id.mensagem);
         mensagens = new ArrayList<>();
         MensagemAdapter adapter = new MensagemAdapter(idDoCliente, mensagens, this);
         listaDeMensagens.setAdapter(adapter);
 
         ouvirMensagem();
-        button = (Button) findViewById(R.id.btn_enviar);
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                chatService.enviar(new Mensagem(idDoCliente, editText.getText().toString()))
-                        .enqueue(new EnviarMensagemCallback());
-            }
-        });
+    }
 
-        editText = (EditText) findViewById(R.id.et_texto);
-
+    @OnClick(R.id.btn_enviar)
+    public void enviarMensagem(){
+        chatService.enviar(new Mensagem(idDoCliente, editText.getText().toString()))
+                .enqueue(new EnviarMensagemCallback());
     }
 
     public void ouvirMensagem() {
