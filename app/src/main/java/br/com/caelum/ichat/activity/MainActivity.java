@@ -1,7 +1,9 @@
 package br.com.caelum.ichat.activity;
 
+import android.os.PersistableBundle;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -52,6 +54,8 @@ public class MainActivity extends AppCompatActivity {
     Picasso picasso;
     @Inject
     EventBus eventBus;
+    @Inject
+    InputMethodManager inputMethodManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,8 +67,13 @@ public class MainActivity extends AppCompatActivity {
         component = app.getComponent();
         component.inject(this);
 
-        // inicializando lista
-        mensagens = new ArrayList<>();
+        //Recuperando mensagens se houver
+        if(savedInstanceState != null){
+            mensagens = (List<Mensagem>) savedInstanceState.getSerializable("mensagens");
+        }
+        else{
+            mensagens = new ArrayList<>();
+        }
         MensagemAdapter adapter = new MensagemAdapter(idDoCliente, mensagens, this);
         listaDeMensagens.setAdapter(adapter);
         picasso.with(this).load("http://api.adorable.io/avatars/285/" + idDoCliente + ".png").into(avatar);
@@ -77,6 +86,8 @@ public class MainActivity extends AppCompatActivity {
     public void enviarMensagem(){
         chatService.enviar(new Mensagem(idDoCliente, editText.getText().toString()))
                 .enqueue(new EnviarMensagemCallback());
+        editText.getText().clear();
+        inputMethodManager.hideSoftInputFromInputMethod(editText.getWindowToken(),0);
     }
 
     @Subscribe
@@ -93,6 +104,13 @@ public class MainActivity extends AppCompatActivity {
     @Subscribe
     public void lidarCom(FailureEvent event){
         ouvirMensagem(null);
+    }
+    // save list status
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putSerializable("mensagens",(ArrayList<Mensagem>)mensagens);
+
     }
 
     @Override
